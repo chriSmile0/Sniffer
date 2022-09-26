@@ -141,28 +141,28 @@ void analyse_online(char *inter)
 
     /*Print packet */
     
-    const struct ethernet_hdr *ethernet;
-    const struct ip_hdr *ip;
-    const struct udp_hdr *udp; /* The UDP header */
-    const struct arp_hdr *arp;
+    const struct ether_header *ethernet;
+    const struct ip *ip;
+    const struct udphdr *udp; /* The UDP header */
+    const struct ether_arp *arp;
     
 
     unsigned int size_ip;
-    ethernet = (struct ethernet_hdr *)(paquet);
+    ethernet = (struct ether_header *)(paquet);
     (void) ethernet;
-    ip = (struct ip_hdr*)(paquet + SIZE_ETHERNET);
-    size_ip = IP_HL(ip)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
+    ip = (struct ip*)(paquet + SIZE_ETHERNET);
+    size_ip = (ip->ip_hl)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
     if (size_ip < 20) {
         fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
         exit(1);
     }
     print_ip_header(ip);
 
-    udp = (struct udp_hdr*)(paquet+SIZE_ETHERNET+size_ip);
+    udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
 
     print_udp_header(udp);
 
-    arp = (struct arp_hdr*)(paquet + SIZE_ETHERNET);
+    arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
     print_arp_header(arp);
 
 	pcap_close(handle);
@@ -178,41 +178,52 @@ void print_addr(struct in_addr ip_addr, int src_or_dst) //0 for src , 1 for dst
     printf( "adresse %s :%s\n", message,buffer );  
 }
 
-void print_ip_header(const struct ip_hdr * ip)
+void print_ip_header(const struct ip * ip)
 {
     printf("**IP HEADER**\n");
-    printf("Version : %u\n",IP_V(ip));
-    printf("IHL : %u\n",IP_HL(ip));
+    printf("Version : %u\n",ip->ip_v);
+    printf("IHL : %u\n",ip->ip_hl);
 
-    printf("ip tos : %u\n",IP_TS(ip));
-    printf("ip taille : %u\n",IP_LEN(ip));
-
-    printf("time to live : %u\n",(ip)->time_tl);
-
-    printf("prot : %u\n",((ip)->prot));//good 
-    print_addr(ip->src_adr,0);
-    print_addr(ip->dst_adr,1); 
+    printf("ip tos : %d\n",ip->ip_tos);
+    printf("ip taille : %u\n",ip->ip_len);
+    printf("Id : %u\n",ip->ip_id);
+    printf("Offset : %u\n",ip->ip_off);
+    printf("time to live : %u\n",ip->ip_ttl);
+    printf("prot : %u\n",ip->ip_p);//good 
+    printf("Checksum : %u\n",ip->ip_sum);
+    print_addr(ip->ip_src,0);
+    print_addr(ip->ip_dst,1); 
 }
 
-void print_udp_header(const struct udp_hdr * udp)
+void print_udp_header(const struct udphdr * udp)
 {
     printf("**UDP HEADER**\n");
-    printf("Port Source : %u\n",udp->udp_sp);
-    printf("Port Destination : %u\n",udp->udp_dp);
-    printf("Taille : %u\n",udp->udp_len);
-    printf("Checksum : %u\n",udp->udp_sum);
+    printf("Port Source : %u\n",udp->uh_sport);
+    printf("Port Destination : %u\n",udp->uh_dport);
+    printf("Taille : %u\n",udp->uh_ulen);
+    printf("Checksum : %u\n",udp->uh_sum);
 }
 
-void print_tcp_header(const struct tcp_hdr *tcp)
+void print_tcp_header(const struct tcphdr *tcp)
 {
     printf("**TCP HEADER**\n");
-    printf("Port Source : %u\n",tcp->tcp_sp);
-    printf("Port Destination : %u\n",tcp->tcp_dp);
-    printf("Sequence number : %lu\n",tcp->tcp_seq_num);
-    printf("Acknowledgment number : %lu\n",tcp->tcp_ack_num);
-    printf("offset : %u\n",TCP_OFF(tcp));
-    printf("Reserved : %u\n",TCP_RSRV(tcp));
-    printf("Checkum : %u\n",tcp->tcp_checksum);
+    printf("Port Source : %u\n",tcp->th_sport);
+    printf("Port Destination : %u\n",tcp->th_dport);
+    printf("Sequence number : %u\n",tcp->th_seq);
+    printf("Acknowledgment number : %u\n",tcp->th_ack);
+    printf("Offset : %u\n",tcp->th_off);
+    printf("Window : %u\n",tcp->th_win);
+    printf("Checkum : %u\n",tcp->th_sum);
+    printf("Urgent pointer : %u\n",tcp->th_urp);
+    printf("Res1 : %u\n",tcp->res1);
+    printf("Off : %u\n",tcp->doff);
+    printf("Fin : %u\n",tcp->fin);
+    printf("Syn : %u\n",tcp->syn);
+    printf("Rst :%u\n",tcp->rst);
+    printf("Psh :%u\n",tcp->psh);
+    printf("Ack :%u\n",tcp->ack);
+    printf("Urg :%u\n",tcp->urg);
+    printf("Res2 :%u\n",tcp->res2);
 }
 
 void print_mac_adr(unsigned long long mac_adr, int src_or_dst)
@@ -222,14 +233,14 @@ void print_mac_adr(unsigned long long mac_adr, int src_or_dst)
 
 }
 
-void print_arp_header(const struct arp_hdr *arp)
+void print_arp_header(const struct ether_arp *arp)
 {
     printf("**ARP HEADER**\n");
-    printf("Hardware type : \n");
-    printf("Protocole : \n");
-    printf("Type d'adresse physique \n");
-    printf("Taille du type de protocole : \n");
-    printf("Operation : \n");
-    printf("%d\n",ETH_ALEN);
+    printf("Hardware type : %u\n",(arp->ea_hdr).ar_hrd);
+    printf("Protocole : %u\n",(arp->ea_hdr).ar_pro);
+    printf("Type d'adresse physique %u\n",(arp->ea_hdr).ar_hln);
+    printf("Taille du type de protocole : %u\n",(arp->ea_hdr).ar_pln);
+    printf("Operation : %u\n",(arp->ea_hdr).ar_op);
+    printf("Adresse Mac source : %s\n",ether_ntoa((struct ether_addr*)arp->arp_sha));
     (void) arp;
 }

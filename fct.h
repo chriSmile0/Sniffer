@@ -95,7 +95,7 @@ void print_addr(struct in_addr ip_addr, int src_or_dst); // print addr to format
  * @return noreturn
 */
 
-void print_ip_header(const struct ip_hdr * ip);
+void print_ip_header(const struct ip * ip);
 
 /**
  * @version 1.0
@@ -109,7 +109,7 @@ void print_ip_header(const struct ip_hdr * ip);
  * @return noreturn
 */
 
-void print_udp_header(const struct udp_hdr * udp);
+void print_udp_header(const struct udphdr * udp);
 
 /**
  * @version 1.0
@@ -123,7 +123,7 @@ void print_udp_header(const struct udp_hdr * udp);
  * @return noreturn 
 */
 
-void print_tcp_header(const struct tcp_hdr *tcp);
+void print_tcp_header(const struct tcphdr *tcp);
 
 /**
  * @version 1.0
@@ -159,7 +159,7 @@ void print_mac_adr(unsigned long long mac_adr, int src_or_dst);
  * @return 
 */
 
-void print_arp_header(const struct arp_hdr *arp);
+void print_arp_header(const struct ether_arp *arp);
 
 /**
  * @version 1.0
