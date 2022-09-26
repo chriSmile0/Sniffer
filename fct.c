@@ -144,6 +144,7 @@ void analyse_online(char *inter)
     const struct ethernet_hdr *ethernet;
     const struct ip_hdr *ip;
     const struct udp_hdr *udp; /* The UDP header */
+    const struct arp_hdr *arp;
     
 
     unsigned int size_ip;
@@ -160,6 +161,10 @@ void analyse_online(char *inter)
     udp = (struct udp_hdr*)(paquet+SIZE_ETHERNET+size_ip);
 
     print_udp_header(udp);
+
+    arp = (struct arp_hdr*)(paquet + SIZE_ETHERNET);
+    print_arp_header(arp);
+
 	pcap_close(handle);
     printf("close \n");
 	return;
@@ -210,8 +215,21 @@ void print_tcp_header(const struct tcp_hdr *tcp)
     printf("Checkum : %u\n",tcp->tcp_checksum);
 }
 
-void decryptage_trame(char *trame)
+void print_mac_adr(unsigned long long mac_adr, int src_or_dst)
 {
-    printf("%s\n",trame);
-    return;
+    (void) src_or_dst;
+    (void) mac_adr;
+
+}
+
+void print_arp_header(const struct arp_hdr *arp)
+{
+    printf("**ARP HEADER**\n");
+    printf("Hardware type : \n");
+    printf("Protocole : \n");
+    printf("Type d'adresse physique \n");
+    printf("Taille du type de protocole : \n");
+    printf("Operation : \n");
+    printf("%d\n",ETH_ALEN);
+    (void) arp;
 }

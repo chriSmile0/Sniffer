@@ -107,8 +107,7 @@ struct arp_hdr {
 	unsigned char arp_hard_adr_len;
 	unsigned char arp_prot_adr_len;
 	unsigned short arp_ope;
-	unsigned long arp_send_hard_adr;//mac a mettre sur 48 bit
-	unsigned long arp_send_prot_adr;//ip 
-	unsigned long arp_dest_hard_adr;//mac a mettre sur 48 bit
-	unsigned long arp_dest_prot_adr;//ip
+	unsigned long long mac_src:48; // voir pour la décoder comme une ipv6
+	struct in_addr ip_src,ip_dst;
+	unsigned long long mac_dst:48; // voir pour la décoder comme une ipv6
 };
