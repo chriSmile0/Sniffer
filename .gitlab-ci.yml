@@ -1,0 +1,17 @@
+default:
+    image: ubuntu:18.04
+
+
+stages:          # List of stages for jobs, and their order of execution
+  - build
+
+build-job:       # This job runs in the build stage, which runs first.
+  
+  stage: build
+  before_script: 
+    - apt-get update
+    - apt-get install --yes xutils-dev gcc make
+  script:
+    - make
+  only:
+    - master
