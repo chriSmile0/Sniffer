@@ -1,0 +1,15 @@
+concis = 1 ligne par paquet (adr ip, udp/tcp) 
+
+synthétique = 1 ligne par protocole (partie du milieu sur wireshark) 
+Exemples : une ligne pour ether, une ligne pour ip, une ligne pour bootp etc ..
+
+complet = tout 
+
+
+utilisation de getopt pour la ligne de commande (pour éviter surprise) 
+
+toujours faire checker une capture dans wireshark pour la comparer ensuite avec notre analyseur
+
+Affichage très lisible (couleur possible)
+
+Attention d'utiliser les structures sur linux et pas celle sous free bsd

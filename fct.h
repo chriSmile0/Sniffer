@@ -67,7 +67,20 @@ void analyse_offline(char *file);
  * @return noreturn 
 */
 
-void analyse_online(char *interface);
+/**
+ * @version 1.0
+ * 
+ * @brief
+ * 
+ * @param[:]
+ * 
+ * @return 
+*/
+
+void got_packet(u_char *args, const struct pcap_pkthdr *header,
+    const u_char *packet);
+
+void analyse_online(pcap_if_t *interface);
 
 /**
  * @version 1.0
@@ -95,7 +108,7 @@ void print_addr(struct in_addr ip_addr, int src_or_dst); // print addr to format
  * @return noreturn
 */
 
-void print_ip_header(const struct ip * ip);
+void print_ip_header(const struct ip* ip);
 
 /**
  * @version 1.0
@@ -170,6 +183,5 @@ void print_arp_header(const struct ether_arp *arp);
  * 
  * @return 
 */
-
 
 #endif /* FCT_H */

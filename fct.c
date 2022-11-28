@@ -9,23 +9,28 @@ struct cmd_options parse_cmd(int argc, char **argv)
     struct cmd_options c_o;
     int i = 0;
     int value_letter = 0;
-    char *return_interface = NULL;
+    pcap_if_t *alldevsp = NULL;
+    pcap_if_t *device;
+    int return_interface;
+    (void) return_interface;
     while(argv[1][i] != '\0')
         i++;
     i--;
     c_o.cmd = argv[1][i];
     snprintf(c_o.options,SIZE_OPTION,"%s",argv[2]);
-    printf("where \n");
     c_o.options[strnlen(argv[1],SIZE_OPTION)] = '\0';//possiblement inutile
-    //c_o.options[strnlen("FILE",SIZE_OPTION)] = '\0';
 
     switch (c_o.cmd)
     {
     case 'i': //interface online
         //check de l'interface 
-        return_interface = pcap_lookupdev(c_o.options);
-        printf("where 2 \n");
-        if(return_interface == NULL) 
+        printf("find all devs : \n");
+        return_interface = pcap_findalldevs(&alldevsp,c_o.options);
+        printf("return interface : %d\n",return_interface);
+        //(void) alldevsp;
+        device = alldevsp;
+        //free(alldevsp);
+        if(device == NULL) 
         {
             fprintf(stderr,"Erreur sur le nom de l'interface \n");
             exit(1);
@@ -33,9 +38,9 @@ struct cmd_options parse_cmd(int argc, char **argv)
         else 
         {
             // traitement interface 
-            analyse_online(return_interface);
+            analyse_online(device);
         }
-        printf("break \n");
+        free(device);
         break;
     case 'o': //interface offline
         //check du fichier + lancement de l'analyse 
@@ -59,6 +64,8 @@ struct cmd_options parse_cmd(int argc, char **argv)
         exit(1);
         break;
     }
+
+    
 
     return c_o; //options et commandes valides 
 }
@@ -87,87 +94,75 @@ void analyse_offline(char *file)
 
     //free(full_trame);
     pcap_t *open_file = pcap_open_offline(file,NULL);
+
+
+
     pcap_close(open_file);
 }
 
-void analyse_online(char *inter)
+void analyse_online(pcap_if_t *inter)
 {
     (void) inter;
 
     pcap_t *handle;
-    char *interface;
+    int interface;
+    (void) interface;
     char errbuf[PCAP_ERRBUF_SIZE];
     struct bpf_program fp;//optionnel 
     char filtre_exp[] = "";//23 pour password, 21,  ou "" pour pas de filtre	
     bpf_u_int32 masque; // masque
     bpf_u_int32 rs; //reseau 
     struct pcap_pkthdr en_tete; //en-tête général de la trame
-    const unsigned char *paquet;
+    (void) en_tete;
 
-	// recherche automatique de l'interface si mess->"|" en entrée//
-	interface = pcap_lookupdev(errbuf);
-	if(interface == NULL) 
+	// recherche automatique de l'interface si mess->"|" en entrée/
+    pcap_if_t *alldevsp = NULL;
+    pcap_if_t *device;
+    (void) device;
+	interface = pcap_findalldevs(&alldevsp,errbuf);
+    device = alldevsp;
+	if(device == NULL) 
     {
-        //erreur
+        fprintf(stderr,"Erreur pas de dev trouver \n");
+        exit(1);
     }
+    device = alldevsp;
     // recherche automatique de l'interface si mess->"|" en entrée//
-	if(pcap_lookupnet(interface, &rs, &masque, errbuf) == -1) 
+	if(pcap_lookupnet(device->name, &rs, &masque, errbuf) == -1) 
     {
-        //erreur
+        fprintf(stderr,"Erreur lookupnet : %s\n",errbuf);
+        exit(1);
     }
 	// Activation du mode promisq //
     // Avec dev precement init //
-	handle = pcap_open_live(interface, BUFSIZ, 1, 1000, errbuf); 
+	handle = pcap_open_live(device->name, BUFSIZ, 1, 1000, errbuf); 
     // 1 pour activer promisq et 1000 de timeout (a changer car 
     // on est en boucle jusqu'à ^C)
 	if(handle == NULL) 
     {
+        fprintf(stderr,"Erreur dev non accessible : %s\n",errbuf);
+        exit(1);
         //erreur 
     }
 	// si filtre activer 
 	if(pcap_compile(handle, &fp, filtre_exp, 0, rs) == -1)
     {
+        fprintf(stderr,"Erreur filtre: %s\n",errbuf);
+        exit(1);
         //erreur
     }
     // si filtre activer 
 	if(pcap_setfilter(handle, &fp) == -1)
     {
+        fprintf(stderr,"Erreur filtre 2 : %s\n",errbuf);
+        exit(1);
         //erreur 
     }
-	
-	paquet = pcap_next(handle, &en_tete);
-    printf("find paquet \n");
-    (void) paquet;
 
-    /*Print packet */
-    
-    const struct ether_header *ethernet;
-    const struct ip *ip;
-    const struct udphdr *udp; /* The UDP header */
-    const struct ether_arp *arp;
-    
-
-    unsigned int size_ip;
-    ethernet = (struct ether_header *)(paquet);
-    (void) ethernet;
-    ip = (struct ip*)(paquet + SIZE_ETHERNET);
-    size_ip = (ip->ip_hl)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
-    if (size_ip < 20) {
-        fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
-        exit(1);
-    }
-    print_ip_header(ip);
-
-    udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
-
-    print_udp_header(udp);
-
-    arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
-    print_arp_header(arp);
-
-	pcap_close(handle);
-    printf("close \n");
-	return;
+   // int n = 20;
+	pcap_loop(handle,-1,got_packet,NULL);//search n packet on handle
+    pcap_close(handle);
+    return;
 }
 
 void print_addr(struct in_addr ip_addr, int src_or_dst) //0 for src , 1 for dst
@@ -191,15 +186,15 @@ void print_ip_header(const struct ip * ip)
     printf("time to live : %u\n",ip->ip_ttl);
     printf("prot : %u\n",ip->ip_p);//good 
     printf("Checksum : %u\n",ip->ip_sum);
-    print_addr(ip->ip_src,0);
-    print_addr(ip->ip_dst,1); 
+    print_addr((ip->ip_src),0);
+    print_addr((ip->ip_dst),1); 
 }
 
 void print_udp_header(const struct udphdr * udp)
 {
     printf("**UDP HEADER**\n");
-    printf("Port Source : %u\n",udp->uh_sport);
-    printf("Port Destination : %u\n",udp->uh_dport);
+    printf("Port Source : %u\n",udp->source);
+    printf("Port Destination : %u\n",udp->dest);
     printf("Taille : %u\n",udp->uh_ulen);
     printf("Checksum : %u\n",udp->uh_sum);
 }
@@ -243,4 +238,45 @@ void print_arp_header(const struct ether_arp *arp)
     printf("Operation : %u\n",(arp->ea_hdr).ar_op);
     printf("Adresse Mac source : %s\n",ether_ntoa((struct ether_addr*)arp->arp_sha));
     (void) arp;
+}
+
+
+
+void got_packet(u_char *args, const struct pcap_pkthdr *header,
+    const u_char *paquet)
+{
+    //(void) paquet;
+    (void) args;
+    (void) header;
+    const struct ether_header *ethernet;
+    const struct ip *ip;
+    const struct udphdr *udp; /* The UDP header */
+    //const struct ether_arp *arp;
+
+    unsigned int size_ip;
+    ethernet = (struct ether_header *)(paquet);
+    
+    (void) ethernet;
+    ip = (struct ip*)(paquet + SIZE_ETHERNET);
+    size_ip = (ip->ip_hl)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
+    if (size_ip < 20) {
+        fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
+        exit(1);
+    }
+    if((ip->ip_p == 17)) {
+            //print_ip_header(ip);
+            udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
+
+            //print_udp_header(udp);
+            (void) udp;
+            if((udp->source == 67) && (udp->dest == 68)) {
+                print_udp_header(udp);
+                printf("boot p\n");
+            }
+        
+
+        /*arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
+        print_arp_header(arp);*/
+    }
+	return;
 }
