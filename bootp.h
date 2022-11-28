@@ -22,6 +22,12 @@
 #ifndef BOOTP_H
 #define BOOTP_H
 
+struct dhcp {
+	u_int8_t tag_values;
+	u_int8_t len;
+	u_int8_t *adr;
+};
+
 struct bootp {
 	u_int8_t	bp_op;		/* packet opcode type */
 	u_int8_t	bp_htype;	/* hardware addr type */
@@ -37,7 +43,8 @@ struct bootp {
 	u_int8_t	bp_chaddr[16];	/* client hardware address */
 	u_int8_t	bp_sname[64];	/* server host name */
 	u_int8_t	bp_file[128];	/* boot file name */
-	u_int8_t	bp_vend[64];	/* vendor-specific area */
+	uint8_t	bp_vend[64];	/* vendor-specific area */
+	//struct dhcp bp_options[128]; /*les options DHCP*/
 };
 
 /*
