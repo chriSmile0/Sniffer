@@ -43,8 +43,7 @@ struct bootp {
 	u_int8_t	bp_chaddr[16];	/* client hardware address */
 	u_int8_t	bp_sname[64];	/* server host name */
 	u_int8_t	bp_file[128];	/* boot file name */
-	uint8_t	bp_vend[64];	/* vendor-specific area */
-	//struct dhcp bp_options[128]; /*les options DHCP*/
+	u_int8_t	bp_vend[64];	/* vendor-specific area */
 };
 
 /*

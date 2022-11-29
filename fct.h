@@ -15,6 +15,10 @@
 
 #define SIZE_OPTION 1024
 
+#define EDT_IP 0x0800
+#define EDT_ARP 0x0806
+#define EDT_RARP 0x0835
+
 
 struct cmd_options {
     char cmd;

@@ -228,6 +228,69 @@ struct in_addr* cast_uint32_in_in_addr(u_int32_t value)
 	return s_a;
 }
 
+char * trad_msg_type_dhcp(int valeur)
+{
+	switch(valeur) 
+	{
+		case 1 : 
+			return "discover";
+			break;
+		case 2 : 
+			return "offer";
+			break;
+		case 3 : 
+			return "request";
+			break;
+		case 6 : 
+			return "ack";
+			break;
+		case 7 :
+			return "release"; 
+			break;
+		default: 
+			return "None";
+			break;
+	}
+}
+
+void dhcp_tlv(int type,int *tab_val, int taille_tab) 
+{
+	(void) taille_tab;
+	if(type < 10)
+	{
+		if((type == 1) || (type == 3) || (type == 6))
+			for(int i = 0 ; i < taille_tab; i++) 
+			{
+				if(i%4 == 0)
+					printf(",");
+				printf("%d.",tab_val[i]);
+			}
+		else 
+			printf("%d",tab_val[0]);	
+	}
+	else if(type < 20) 
+	{
+		for(int i = 0 ; i < taille_tab; i++) 
+			printf("%c",tab_val[i]);
+	}
+	else if(type < 50)
+	{
+		for(int i = 0 ; i < taille_tab; i++) 
+			printf("%d.",tab_val[i]);
+	}
+	else {
+		if((type == 50) || (type == 55) ||(type == 61) ||(type == 54))
+			for(int i = 0 ; i < taille_tab; i++) 
+				printf("%d.",tab_val[i]);
+		else if(type == 53)
+			printf("DHCP Message type : (%d) : %s",
+				tab_val[0],trad_msg_type_dhcp(tab_val[0]));
+		else if(type == 51)
+			printf("%d",tab_val[0]);
+	}
+	printf("\n\n");
+}
+
 void print_bootp_header(struct bootp *b_p) 
 {
 	printf("**BOOTP HEADER**\n");
@@ -264,6 +327,7 @@ void print_bootp_header(struct bootp *b_p)
 		tab_val = calloc(taille_valeurs,4); 
 		for(int j = 0 ; j < taille_valeurs; j++) 
 			tab_val[j] = b_p->bp_vend[j+i+2];
+		dhcp_tlv(b_p->bp_vend[i],tab_val,taille_valeurs);
 		i += taille_valeurs+2;
 	}
 	(void) stop;
@@ -273,14 +337,10 @@ void print_bootp_header(struct bootp *b_p)
 void print_tcp_header(const struct tcphdr *tcp)
 {
 	printf("**TCP HEADER**\n");
-	printf("Port Source : %u\n",tcp->th_sport);
-	printf("Port Destination : %u\n",tcp->th_dport);
-	printf("Sequence number : %u\n",tcp->th_seq);
-	printf("Acknowledgment number : %u\n",tcp->th_ack);
-	printf("Offset : %u\n",tcp->th_off);
-	printf("Window : %u\n",tcp->th_win);
-	printf("Checkum : %u\n",tcp->th_sum);
-	printf("Urgent pointer : %u\n",tcp->th_urp);
+	printf("Port Source : %u\n",ntohs(tcp->source));
+	printf("Port Destination : %u\n",ntohs(tcp->dest));
+	printf("Sequence number : %x\n",tcp->seq);
+	printf("Acknowledgment number : %x\n",tcp->ack_seq);
 	printf("Res1 : %u\n",tcp->res1);
 	printf("Off : %u\n",tcp->doff);
 	printf("Fin : %u\n",tcp->fin);
@@ -290,6 +350,9 @@ void print_tcp_header(const struct tcphdr *tcp)
 	printf("Ack :%u\n",tcp->ack);
 	printf("Urg :%u\n",tcp->urg);
 	printf("Res2 :%u\n",tcp->res2);
+	printf("Window : %u\n",tcp->window);
+	printf("Checkum : %x\n",tcp->check);
+	printf("Urgent pointer : %u\n",tcp->urg_ptr>>8);
 }
 
 void print_mac_adr(unsigned long long mac_adr, int src_or_dst)
@@ -320,41 +383,66 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
 	(void) args;
 	(void) header;
 	const struct ether_header *ethernet;
-	const struct ip *ip;
-	const struct udphdr *udp; /* The UDP header */
-	//const struct ether_arp *arp;
-
-	unsigned int size_ip;
 	ethernet = (struct ether_header *)(paquet);
-	
-	(void) ethernet;
-	ip = (struct ip*)(paquet + SIZE_ETHERNET);
-	size_ip = (ip->ip_hl)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
-	printf("size_ ip : %d\n",size_ip);
-	if (size_ip < 20) {
-		fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
-		exit(1);
-	}
-	print_ip_header(ip);
-	
-	if((ip->ip_p == 17)) {
+	if((ethernet->ether_type<<8) == EDT_IP)
+	{
+		const struct ip *ip;
+		ip = (struct ip*)(paquet + SIZE_ETHERNET);
+		unsigned int size_ip;
+		size_ip = (ip->ip_hl)*4; // après des recherches j'ai vu que l'on doit faire HEad length*4
+		if (size_ip < 20) 
+		{
+			fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
+			exit(1);
+		}
+		print_ip_header(ip);
+		
+		if((ip->ip_p == 17)) 
+		{
+			const struct udphdr *udp; /* The UDP header */
 			udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
 			print_udp_header(udp);
 			if((udp->source>>8 == 67) || (udp->dest>>8 == 67)) {
-				//unsigned int size_udp = udp->len;
 				print_udp_header(udp);
-				printf("boot p\n");
 				struct bootp *b_p;
 				b_p = (struct bootp*)(paquet+SIZE_ETHERNET+size_ip+(sizeof(udp)));
-				print_bootp_header(b_p);
-				//const struct dhcp *d_c;
-				//d_c = (struct dhcp*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(b_p));
-								
+				print_bootp_header(b_p);					
 			}
-		
-
-		/*arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
-		print_arp_header(arp);*/
+			else if((udp->source>>8 == 53) || (udp->dest>>8 == 53))
+			{
+				//DNS
+			}
+		}
+		else 
+		{
+			const struct tcphdr *tcp;
+			tcp = (struct tcphdr*)(paquet+SIZE_ETHERNET+size_ip);
+			print_tcp_header(tcp);
+			//check des ports pour savoir si on fait du SMTP ou pas derrière 
+			if((ntohs(tcp->dest) == 25) || (ntohs(tcp->source) == 25)){
+				//const struct smtp_hdr *smtp; /* The UDP header */
+				//smtp = (struct smtp_hdrr*)(paquet+SIZE_ETHERNET+size_ip+(sizeof(tcp)));
+			}
+			else if((ntohs(tcp->dest) == 80) || (ntohs(tcp->source) == 80)) {
+				//HTTP
+			}
+			else if(f((ntohs(tcp->dest) == 21) || (ntohs(tcp->source) == 21))) {
+				//FTP
+			}
+			else if(f((ntohs(tcp->dest) == 23) || (ntohs(tcp->source) == 23))) {
+				//Telnet 
+			}
+			
+		}
+	}
+	else if(ethernet->ether_type == EDT_ARP)
+	{
+		const struct ether_arp *arp;
+		arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
+		print_arp_header(arp);
+	}
+	else {
+		printf("print RARP \n");
 	}
 	return;
 }
