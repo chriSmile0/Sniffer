@@ -40,6 +40,7 @@ struct cmd_options parse_cmd(int argc, char **argv)
 		{
 			// traitement interface 
 			analyse_online(device);
+		
 		}
 		free(device);
 		break;
@@ -200,8 +201,8 @@ void print_ip_header(const struct ip * ip)
 	printf("IHL : %u\n",ip->ip_hl);
 
 	printf("ip tos : %d\n",ip->ip_tos);
-	printf("ip taille : %u\n",ip->ip_len);
-	printf("Id : %u\n",ip->ip_id);
+	printf("ip taille : %u\n",ntohs(ip->ip_len));
+	printf("Id : %u\n",ntohs(ip->ip_id));
 	printf("Offset : %u\n",ip->ip_off);
 	printf("time to live : %u\n",ip->ip_ttl);
 	printf("prot : %u\n",ip->ip_p);//good 
@@ -213,10 +214,33 @@ void print_ip_header(const struct ip * ip)
 void print_udp_header(const struct udphdr * udp)
 {
 	printf("**UDP HEADER**\n");
-	printf("Port Source : %u\n",udp->source>>8);
-	printf("Port Destination : %u\n",udp->dest>>8);
-	printf("Taille : %u\n",udp->len>>6);
-	printf("Checksum : %u\n",udp->check);
+	printf("Port Source : %u\n",ntohs(udp->source));
+	printf("Port Destination : %u\n",ntohs(udp->dest));
+	printf("Taille : %u\n",ntohs(udp->len));
+	printf("Checksum : %u\n",ntohs(udp->check));
+}
+
+void print_dns_header(const HEADER *dns) 
+{
+	printf("**DNS HEADER**\n");
+	printf("requête id : %x\n",ntohs(dns->id)); 		/*%< query identification number */
+							
+	printf("Recursion desirer : %d\n",dns->rd);		/*%< recursion desired */
+	printf("message tronquer : %d\n",dns->tc); 		/*%< truncated message */
+	printf("Message de l'autorité : %d\n",dns->aa); 		/*%< authoritive answer */
+	printf("Objectif : %d\n",dns->opcode);	/*%< purpose of message */
+	printf("Flags réponse : %d\n",dns->qr); 		/*%< response flag */
+			/* fields in fourth byte */
+	printf("Code réponse : %d\n",dns->rcode);	/*%< response code */
+	printf("Check de désactivation par résolution : %d\n",dns->cd);		/*%< checking disabled by resolver */
+	printf("Data authentique par nom : %d\n",dns->ad);/*%< authentic data from named */
+	printf("Inutilisé : %d\n",dns->unused);					/*%< unused bits (MBZ as of 4.9.3a3) */
+	printf("Récursion disponible : %d\n",dns->ra);		/*%< recursion available */
+
+	printf("Questions : %u\n",ntohs(dns->qdcount));	/*%< number of question entries */
+	printf("Réponses  : %u\n",ntohs(dns->ancount));	/*%< number of answer entries */
+	printf("Entrées de l'autorité : %u\n",ntohs(dns->nscount));	/*%< number of authority entries */
+	printf("Entrées ressources : %u\n",ntohs(dns->arcount));	/*%< number of resource entries */
 }
 
 struct in_addr* cast_uint32_in_in_addr(u_int32_t value) 
@@ -334,13 +358,15 @@ void print_bootp_header(struct bootp *b_p)
 	
 }
 
+
+
 void print_tcp_header(const struct tcphdr *tcp)
 {
 	printf("**TCP HEADER**\n");
 	printf("Port Source : %u\n",ntohs(tcp->source));
 	printf("Port Destination : %u\n",ntohs(tcp->dest));
-	printf("Sequence number : %x\n",tcp->seq);
-	printf("Acknowledgment number : %x\n",tcp->ack_seq);
+	printf("Sequence number : %x\n",ntohs(tcp->seq));
+	printf("Acknowledgment number : %x\n",ntohs(tcp->ack_seq));
 	printf("Res1 : %u\n",tcp->res1);
 	printf("Off : %u\n",tcp->doff);
 	printf("Fin : %u\n",tcp->fin);
@@ -350,8 +376,8 @@ void print_tcp_header(const struct tcphdr *tcp)
 	printf("Ack :%u\n",tcp->ack);
 	printf("Urg :%u\n",tcp->urg);
 	printf("Res2 :%u\n",tcp->res2);
-	printf("Window : %u\n",tcp->window);
-	printf("Checkum : %x\n",tcp->check);
+	printf("Window : %u\n",ntohs(tcp->window));
+	printf("Checkum : %x\n",ntohs(tcp->check));
 	printf("Urgent pointer : %u\n",tcp->urg_ptr>>8);
 }
 
@@ -411,25 +437,167 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
 			else if((udp->source>>8 == 53) || (udp->dest>>8 == 53))
 			{
 				//DNS
+				HEADER *dns;
+				dns = (HEADER*)(paquet+SIZE_ETHERNET+size_ip+(sizeof(udp)));
+				print_dns_header(dns);
+				int number_answers_RRs = ntohs(dns->ancount);
+				int number_queries = ntohs(dns->qdcount);
+				int number_auth_rrs = ntohs(dns->nscount);
+				int number_add_rrs = ntohs(dns->arcount);
+				if(number_queries != 0) 
+				{
+					
+					/*qur = (struct querry*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(dns));
+					printf("sizeof(dns) : %ld\n",sizeof(dns));
+					//printf("%u\n",qur->type);*/
+					char buf[1000];
+					char *qname;
+					//struct RES_RECORD answers[20],auth[20],addit[20]; //the replies from the DNS server
+	
+
+					//struct QUESTION *qinfo = NULL;
+					qname = (char*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(HEADER)+1);
+					snprintf(buf,strlen(qname)+1,"%s",qname);
+					buf[strlen(qname)+1] = '\0';
+					printf("qname : %s\n",buf);
+					//free(qname);
+					struct QUESTION *qinfo;
+					qinfo = (struct QUESTION*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(HEADER)+strlen(buf)+2);
+					(void) qinfo;
+					printf("type : %d\n",ntohs(qinfo->qtype));
+					printf("class : %d\n",ntohs(qinfo->qclass));
+
+					//printf("quinfo -> type : %x\n",qinfo->qclass);
+					//printf("%d\n",qur->f_c2);
+
+					if(number_answers_RRs!= 0) 
+					{
+						//struct RES_RECORD answers[20];
+					}
+
+					if(number_auth_rrs != 0) 
+					{
+						//struct RES_RECORD auth[20]; //the replies from the DNS server
+					}
+
+					if(number_add_rrs != 0)
+					{
+					
+						//struct RES_RECORD add[20]; //the replies from the DNS server
+						struct RES_RECORD *rr;
+						char *lecture;
+						lecture = (char*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(HEADER)+strlen(buf)+2+sizeof(struct QUESTION));
+						printf("sizeof question : %ld\n",sizeof(struct QUESTION));
+						printf("name : %s\n",(lecture));
+						printf("len lecture : %ld\n",strlen(lecture));
+						rr = (struct RES_RECORD*)(paquet+SIZE_ETHERNET+size_ip+sizeof(udp)+sizeof(HEADER)+strlen(buf)+2+sizeof(struct QUESTION)+strlen(lecture)+1);
+						(void) rr;
+						if(rr != NULL) {
+							printf("type %d\n",ntohs(rr->type));
+							printf("taille : %d\n",ntohs(rr->data_len));
+							
+							//printf("%s\n",rr->rdata);
+						}
+						//printf("%d\n",ntohs(rr->resource->type));
+
+					}
+					
+					
+				}
+
+
 			}
 		}
 		else 
 		{
+			
 			const struct tcphdr *tcp;
 			tcp = (struct tcphdr*)(paquet+SIZE_ETHERNET+size_ip);
 			print_tcp_header(tcp);
+			//int off_smtp = (tcp->doff*4);
+			int nb_options = (tcp->doff*4)-20;
+			const struct tcp_options *tcp_o;
+			tcp_o = (struct tcp_options*)(paquet+SIZE_ETHERNET+size_ip+nb_options);
+			(void) tcp_o;
+			int i = 0;
+			printf("<");
+			// //***a refaire en switch case et dans une fonction *********************************/
+			while(i < nb_options) {
+				u_int8_t *taille_paquet;
+				taille_paquet = (u_int8_t*)(paquet+SIZE_ETHERNET+size_ip+sizeof(tcp)+nb_options+i);
+				taille_paquet += 1;
+				if((int)*taille_paquet == 4) 
+				{
+					printf("sackOk,");
+				}
+				else if((int)*taille_paquet == 8) 
+				{
+					struct timestamps *tms;
+					tms = (struct timestamps*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
+					printf("timestamp ");
+					printf("%d ",ntohl(tms->t1));
+					printf("%d ,",ntohl(tms->t2));
+				}
+				else if((int)*taille_paquet == 3) 
+				{
+					u_int8_t *wscale;
+					wscale = (u_int8_t*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
+					printf("wscale ");
+					printf("%d ,",*wscale);
+				}
+				else if((int)*taille_paquet == 2) 
+				{
+					u_int16_t *mss;
+					mss = (u_int16_t*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
+					printf("mss %d,",ntohl(*mss));
+				}
+				else {
+					printf("nop,");
+				}
+				i+= ((int)*taille_paquet); //soucis ici avec le http simple (get)
+
+			}
+			printf(">\n");
 			//check des ports pour savoir si on fait du SMTP ou pas derrière 
-			if((ntohs(tcp->dest) == 25) || (ntohs(tcp->source) == 25)){
-				//const struct smtp_hdr *smtp; /* The UDP header */
-				//smtp = (struct smtp_hdrr*)(paquet+SIZE_ETHERNET+size_ip+(sizeof(tcp)));
+			if(((ntohs(tcp->dest) == 25) || (ntohs(tcp->source) == 25)) || 
+				((ntohs(tcp->dest) == 587) || ntohs(tcp->source) == 587)){
+				const struct smtp *smtp_s;
+				smtp_s = (struct smtp*)(paquet+SIZE_ETHERNET+size_ip+(tcp->doff*4));
+				int i = 0;
+				char cur_char;
+				while((cur_char = (char)smtp_s->vend[i])) 
+				{
+					printf("%c",cur_char);
+					i++;
+				}
+				//FIN !!
+					
 			}
 			else if((ntohs(tcp->dest) == 80) || (ntohs(tcp->source) == 80)) {
 				//HTTP
+				const struct smtp *smtp_s;
+				smtp_s = (struct smtp*)(paquet+SIZE_ETHERNET+size_ip+(tcp->doff*4));
+				int i = 0;
+				char cur_char;
+				while((cur_char = (char)smtp_s->vend[i])) 
+				{
+					printf("%c",cur_char);
+					i++;
+				}
 			}
-			else if(f((ntohs(tcp->dest) == 21) || (ntohs(tcp->source) == 21))) {
+			else if(((ntohs(tcp->dest) == 21) || (ntohs(tcp->source) == 21))) {
 				//FTP
+				const struct smtp *smtp_s;
+				smtp_s = (struct smtp*)(paquet+SIZE_ETHERNET+size_ip+(tcp->doff*4));
+				int i = 0;
+				char cur_char;
+				while((cur_char = (char)smtp_s->vend[i])) 
+				{
+					printf("%c",cur_char);
+					i++;
+				}
 			}
-			else if(f((ntohs(tcp->dest) == 23) || (ntohs(tcp->source) == 23))) {
+			else if(((ntohs(tcp->dest) == 23) || (ntohs(tcp->source) == 23))) {
 				//Telnet 
 			}
 			
