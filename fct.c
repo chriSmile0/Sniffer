@@ -1,187 +1,43 @@
 #include "fct.h"
 #define SIZE_ETHERNET 14
 
-
-
-struct cmd_options parse_cmd(int argc, char **argv)
-{
-	printf("argc: %d , argv[0] : %s\n",argc,argv[0]);
-	struct cmd_options c_o;
-	int i = 0;
-	int value_letter = 0;
-	pcap_if_t *alldevsp = NULL;
-	pcap_if_t *device;
-	int return_interface;
-	(void) return_interface;
-	while(argv[1][i] != '\0')
-		i++;
-	i--;
-	c_o.cmd = argv[1][i];
-	snprintf(c_o.options,SIZE_OPTION,"%s",argv[2]);
-	if(argc == 3)
-		c_o.options[strnlen(argv[2],SIZE_OPTION)] = '\0';//possiblement inutile
-
-	switch (c_o.cmd)
-	{
-	case 'i': //interface online
-		//check de l'interface 
-		printf("find all devs : \n");
-		return_interface = pcap_findalldevs(&alldevsp,c_o.options);
-		printf("return interface : %d\n",return_interface);
-		//(void) alldevsp;
-		device = alldevsp;
-		//free(alldevsp);
-		if(device == NULL) 
-		{
-			fprintf(stderr,"Erreur sur le nom de l'interface \n");
-			exit(1);
-		}
-		else 
-		{
-			// traitement interface 
-			analyse_online(device);
-		
-		}
-		free(device);
-		break;
-	case 'o': //interface offline
-		//check du fichier + lancement de l'analyse 
-		printf("off line \n");
-		analyse_offline(c_o.options);
-		break;
-	case 'f': //filtre BPF (optionnel)
-		//check du filtre 
-		break;
-	case 'v': 
-		value_letter = (int) c_o.options[0];
-		if((value_letter < 49) || (value_letter > 51))
-		{
-			fprintf(stderr,"Verbose -> [1|2|3] \n");
-			exit(1);
-		}
-		break;
-	
-	default:
-		//error 
-		fprintf(stderr,"Commande possible : -[f|i|o|v]");
-		exit(1);
-		break;
-	}
-
-	
-
-	return c_o; //options et commandes valides 
-}
-
-
 void analyse_offline(char *file)
 {
-	/*char buf[SIZE_OPTION];
-	int fd = open(file,O_RDONLY);
-	if(fd == -1) 
-	{
-		fprintf(stderr,"Erreur ouverture du fichier \n");
-		exit(1);
-	}
-	int read_ = 0;
-	int total_size = 0;
-	while(read_ = read(fd,buf,SIZE_OPTION) > 0)
-	{
-		total_size += read;
-		//on lit le fichier , //il faut placer le tout dans un plus grand buffer 
-	}
-	char *full_trame;
-	full_trame  = malloc(sizeof(char)*(total_size+1));*/
-
-	/* Decryptage trame */
-
 	char errbuf[PCAP_ERRBUF_SIZE];
-	//free(full_trame);
-	printf("where error \n");
 	pcap_t *open_file = pcap_open_offline(file,errbuf);
-	printf("file : %s\n",file);
-	
-	if(open_file == NULL) 
-	{
+
+	if(open_file == NULL) {
 		fprintf(stderr,"Erreur dev non accessible : %s\n",errbuf);
 		exit(1);
 		//erreur 
 	}
-	// si filtre activer 
-	pcap_loop(open_file,1,got_packet,NULL);//search n packet on handle
-	/*{
-		fprintf(stderr,"Erreur loop : %s\n",errbuf);
-		exit(1);
-	}*/
+	pcap_loop(open_file,-1,got_packet,NULL);//search n packet on handle
 	pcap_close(open_file);
 }
 
-void analyse_online(pcap_if_t *inter)
+void analyse_online(pcap_t *handle, char *filtre, bpf_u_int32 net)
 {
-	(void) inter;
-
-	pcap_t *handle;
-	int interface;
-	(void) interface;
-	char errbuf[PCAP_ERRBUF_SIZE];
-	struct bpf_program fp;//optionnel 
-	char filtre_exp[] = "";//23 pour password, 21,  ou "" pour pas de filtre	
-	bpf_u_int32 masque; // masque
-	bpf_u_int32 rs; //reseau 
-	struct pcap_pkthdr en_tete; //en-tête général de la trame
-	(void) en_tete;
-
-	// recherche automatique de l'interface si mess->"|" en entrée/
-	pcap_if_t *alldevsp = NULL;
-	pcap_if_t *device;
-	(void) device;
-	interface = pcap_findalldevs(&alldevsp,errbuf);
-	device = alldevsp;
-	if(device == NULL) 
-	{
-		fprintf(stderr,"Erreur pas de dev trouver \n");
-		exit(1);
+	// int n = 20; // -1 pour l'infini 
+	if(filtre != NULL) {
+		char errbuf[PCAP_ERRBUF_SIZE];	/* Error string */
+		(void) errbuf;
+		struct bpf_program fp;		/* The compiled filter expression */ 
+		char filter_exp[30];/* The filter expression */;
+		snprintf(filter_exp,strlen(filtre)+1,"%s",filtre);
+		filter_exp[strlen(filtre)] = '\0';
+		printf("filtre : |%s|\n",filter_exp);
+		if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
+			fprintf(stderr, "Couldn't parse filter %s: %s\n", filtre, 
+				pcap_geterr(handle));
+			exit(EXIT_FAILURE);
+		}
+		if (pcap_setfilter(handle, &fp) == -1) {
+			fprintf(stderr, "Couldn't install filter %s: %s\n", filtre, 
+				pcap_geterr(handle));
+			exit(EXIT_FAILURE);
+		}
 	}
-	device = alldevsp;
-	char dev[] = "wlp2s0";	
-	// recherche automatique de l'interface si mess->"|" en entrée//
-	if(pcap_lookupnet(dev, &rs, &masque, errbuf) == -1) 
-	{
-		fprintf(stderr,"Erreur lookupnet : %s\n",errbuf);
-		exit(1);
-	}
-	// Activation du mode promisq //
-	// Avec dev precement init //
-	handle = pcap_open_live(dev, BUFSIZ, 1, 10000, errbuf); 
-	// 1 pour activer promisq et 1000 de timeout (a changer car 
-	// on est en boucle jusqu'à ^C)
-	if(handle == NULL) 
-	{
-		fprintf(stderr,"Erreur dev non accessible : %s\n",errbuf);
-		exit(1);
-		//erreur 
-	}
-	// si filtre activer 
-	if(pcap_compile(handle, &fp, filtre_exp, 0, rs) == -1)
-	{
-		fprintf(stderr,"Erreur filtre: %s\n",errbuf);
-		exit(1);
-		//erreur
-	}
-	// si filtre activer 
-	if(pcap_setfilter(handle, &fp) == -1)
-	{
-		fprintf(stderr,"Erreur filtre 2 : %s\n",errbuf);
-		exit(1);
-		//erreur 
-	}
-
-// int n = 20;
 	pcap_loop(handle,400,got_packet,NULL); //search n packet on handle
-	//{
-		/*fprintf(stderr,"Erreur loop : %s\n",errbuf);
-		exit(1);*/
-	//}
 	pcap_close(handle);
 	return;
 }

@@ -84,7 +84,7 @@ void analyse_offline(char *file);
 void got_packet(u_char *args, const struct pcap_pkthdr *header,
     const u_char *packet);
 
-void analyse_online(pcap_if_t *interface);
+void analyse_online(pcap_t *handle,char *filtre, bpf_u_int32 net);
 
 /**
  * @version 1.0
