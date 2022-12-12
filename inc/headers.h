@@ -5,6 +5,15 @@
 #include <arpa/telnet.h>
 #include "lib_net.h"
 #include "lib_netinet.h"
+//lib
+#include <stdio.h>
+#include <pcap.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 
 struct QUESTION

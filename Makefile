@@ -2,11 +2,13 @@
 CC=gcc
 CFLAGS= -Wall -Werror -Wextra
 LIBFLAGS= -lpcap
+SRC = "src/"
+INC = "inc/"
 
 all : proj
 
 proj:
-	$(CC) $(CFLAGS) analyseur.c fct.c -o analyseur $(LIBFLAGS)
+	$(CC) $(CFLAGS) analyseur.c $(SRC)*.c -o analyseur $(LIBFLAGS)
 
 exec_o : all  # choix du fichier en entrée 
 	./analyseur -o $(ARGS) -v 3  

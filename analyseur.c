@@ -1,4 +1,4 @@
-#include "fct.h"
+#include "inc/fct.h"
 #include <getopt.h>
 
 int main(int argc, char *argv[]) {
