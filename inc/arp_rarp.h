@@ -2,7 +2,9 @@
 #define ARP_RARP_INC_H
 #include <netinet/ether.h>
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <stdio.h>
+#include "utile.h"
 
 
 

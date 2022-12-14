@@ -253,7 +253,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
 			
 		}
 	}
-	else if(ethernet->ether_type == EDT_ARP)
+	else if(ntohs(ethernet->ether_type) == EDT_ARP)
 	{
 		const struct ether_arp *arp;
 		arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);

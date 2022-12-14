@@ -25,3 +25,12 @@ struct in_addr* cast_uint32_in_in_addr(u_int32_t value)
 	(void) s_a;
 	return s_a;
 }
+
+struct in_addr* cast_uint8_in_in_addr(const u_int8_t* val) 
+{
+	struct in_addr *s_a;
+	s_a = malloc(sizeof(struct in_addr));
+	s_a->s_addr = (in_addr_t)*val;
+	(void) s_a;
+	return s_a;
+}
