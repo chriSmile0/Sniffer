@@ -58,7 +58,7 @@ void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char
 	int verbose = args[0].verbose;
 	const struct ether_header *ethernet;
 	ethernet = (struct ether_header *)(paquet);
-	print_ethernet_header(ethernet);
+	print_ethernet_header(ethernet,verbose);
 	if((ethernet->ether_type<<8) == EDT_IP)
 	{
 		const struct ip *ip;
@@ -260,7 +260,7 @@ void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char
 		print_arp_header(arp,verbose);
 	}
 	else {
-		printf("print RARP \n");
+		printf("RARP \n");
 	}
 	return;
 }

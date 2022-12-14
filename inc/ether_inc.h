@@ -17,6 +17,6 @@
  * @return 
 */
 
-void print_ethernet_header(const struct ether_header *ether);
+void print_ethernet_header(const struct ether_header *ether, int verbose);
 
 #endif // ETHER_INC_H
