@@ -11,7 +11,7 @@ proj:
 	$(CC) $(CFLAGS) analyseur.c $(SRC)*.c -o analyseur $(LIBFLAGS)
 
 exec_o : all  # choix du fichier en entrée 
-	./analyseur -o $(ARGS) -v 3  
+	./analyseur -o $(ARGS) -v $(V)   
 
 exec_i : all
 	./analyseur -i $(ARGS) -v 3 

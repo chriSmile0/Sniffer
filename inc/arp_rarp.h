@@ -18,6 +18,6 @@
  * @return 
 */
 
-void print_arp_header(const struct ether_arp *arp);
+void print_arp_header(const struct ether_arp *arp, int verbose);
 
 #endif // ARP_RARP_INC_H

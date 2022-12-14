@@ -18,6 +18,9 @@
 #define EDT_ARP 0x0806
 #define EDT_RARP 0x0835
 
+typedef struct {
+  int verbose;
+} arguments;
 
 /**
  * @version 1.0
@@ -30,7 +33,7 @@
  * @return //Pour le moment rien
 */
 
-void analyse_offline(char *file);
+void analyse_offline(char *file, int verbose);
 
 /**
  * @version 1.0
@@ -53,10 +56,9 @@ void analyse_offline(char *file);
  * @return 
 */
 
-void got_packet(u_char *args, const struct pcap_pkthdr *header,
-    const u_char *packet);
+void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char *paquet);
 
-void analyse_online(pcap_t *handle,char *filtre, bpf_u_int32 net);
+void analyse_online(pcap_t *handle,char *filtre, bpf_u_int32 net, int verbose);
 
 
 #endif /* FCT_H */

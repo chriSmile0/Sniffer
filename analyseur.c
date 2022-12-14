@@ -104,7 +104,8 @@ int main(int argc, char *argv[]) {
 	if(mode == 'o') {
 		//Offline : verbose [1|2|3] mode : o , filtre = NULL
 		printf("File : %s\n",file);
-		analyse_offline(file);
+		printf("verbose ::: %d\n",verbose);
+		analyse_offline(file,verbose);
 		if(file != NULL)
 			free(file);
 	}
@@ -129,7 +130,7 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 			else {
-				analyse_online(handle,filtre,net);
+				analyse_online(handle,filtre,net,verbose);
 			}
 		}
 		else {
@@ -146,7 +147,7 @@ int main(int argc, char *argv[]) {
 				return EXIT_FAILURE;
 			}
 			else {
-				analyse_online(handle,filtre,net);
+				analyse_online(handle,filtre,net,verbose);
 			}
 		}
 		if(dev == NULL)

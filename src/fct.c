@@ -5,7 +5,7 @@
 
 #define SIZE_ETHERNET 14
 
-void analyse_offline(char *file)
+void analyse_offline(char *file, int verbose)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *open_file = pcap_open_offline(file,errbuf);
@@ -15,11 +15,12 @@ void analyse_offline(char *file)
 		exit(1);
 		//erreur 
 	}
-	pcap_loop(open_file,-1,got_packet,NULL);//search n packet on handle
+	arguments arg[1] = {{verbose}};
+	pcap_loop(open_file,-1,(pcap_handler)got_packet,(u_char*)arg);//search n packet on handle
 	pcap_close(open_file);
 }
 
-void analyse_online(pcap_t *handle, char *filtre, bpf_u_int32 net)
+void analyse_online(pcap_t *handle, char *filtre, bpf_u_int32 net, int verbose)
 {
 	// int n = 20; // -1 pour l'infini 
 	if(filtre != NULL) {
@@ -41,7 +42,8 @@ void analyse_online(pcap_t *handle, char *filtre, bpf_u_int32 net)
 			exit(EXIT_FAILURE);
 		}
 	}
-	pcap_loop(handle,400,got_packet,NULL); //search n packet on handle
+	arguments arg[1] = {{verbose}};
+	pcap_loop(handle,400,(pcap_handler)got_packet,(u_char*)arg); //search n packet on handle
 	pcap_close(handle);
 	return;
 }
@@ -50,12 +52,10 @@ void analyse_online(pcap_t *handle, char *filtre, bpf_u_int32 net)
 
 
 
-void got_packet(u_char *args, const struct pcap_pkthdr *header,
-	const u_char *paquet)
+void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char *paquet)
 {
-	//(void) paquet;
-	(void) args;
 	(void) header;
+	int verbose = args[0].verbose;
 	const struct ether_header *ethernet;
 	ethernet = (struct ether_header *)(paquet);
 	print_ethernet_header(ethernet);
@@ -74,7 +74,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
 		
 		if((ip->ip_p == 17)) 
 		{
-			const struct udphdr *udp; /* The UDP header */
+			const struct udphdr *udp; // The UDP header 
 			udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
 			print_udp_header(udp);
 			if((udp->source>>8 == 67) || (udp->dest>>8 == 67)) {
@@ -257,7 +257,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header,
 	{
 		const struct ether_arp *arp;
 		arp = (struct ether_arp*)(paquet + SIZE_ETHERNET);
-		print_arp_header(arp);
+		print_arp_header(arp,verbose);
 	}
 	else {
 		printf("print RARP \n");
