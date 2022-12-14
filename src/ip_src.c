@@ -1,22 +1,128 @@
 #include "../inc/ip_inc.h"
 
-void print_ip_header(const struct ip * ip)
+void print_ip_header(const struct ip * ip, int verbose)
 {
-	printf("**IP HEADER**\n");
-	printf("Version : %u\n",ip->ip_v);
-	printf("IHL : %u\n",ip->ip_hl);
+	char buffer1[INET_ADDRSTRLEN];
+	char buffer2[INET_ADDRSTRLEN];
+	inet_ntop( AF_INET, &ip->ip_src, buffer1, sizeof( buffer1 ));
+	//printf("@IP src: %s ",buffer);
+	inet_ntop( AF_INET, &ip->ip_dst, buffer2, sizeof( buffer2 ));
+	//printf("@IP dst: %s ",buffer);
+	char *prot = (ip->ip_p == 6) ? "TCP" : "UDP";
 
-	printf("ip tos : %d\n",ip->ip_tos);
-	printf("ip taille : %u\n",ntohs(ip->ip_len));
-	printf("Id : %u\n",ntohs(ip->ip_id));
-	printf("Offset : %u\n",ip->ip_off);
-	printf("time to live : %u\n",ip->ip_ttl);
-	printf("prot : %u\n",ip->ip_p);//good 
-	printf("Checksum : %u\n",ip->ip_sum);
-	print_addr((ip->ip_src),0);
-	print_addr((ip->ip_dst),1); 
+	if(verbose == 1) {
+		printf(" *IP4:* Src-Dst:%s-%s Prot: %s ",buffer1,buffer2,prot);
+	}
+	else if(verbose == 2) {
+		printf("\n\t**IP HEADER** : Prot: %s Len: %u ",prot,ntohs(ip->ip_len));
+		printf("Id: %u Checksum: %x ",ntohs(ip->ip_id),ip->ip_sum);
+		printf("@Src: %s @Dst: %s ",buffer1,buffer2);
+	}
+	else {
+		printf("\n\t**IP HEADER**\n");
+		printf("Version : %u\n",ip->ip_v);
+		printf("IHL : %u\n",ip->ip_hl);
+		printf("ip tos : %d\n",ip->ip_tos);
+		printf("ip taille : %u\n",ntohs(ip->ip_len));
+		printf("Id : %u\n",ntohs(ip->ip_id));
+		printf("Offset : %u\n",ip->ip_off);
+		printf("Time to live : %u\n",ip->ip_ttl);
+		printf("Prot : %s\n",prot); 
+		printf("Checksum : %u\n",ip->ip_sum);
+		print_addr((ip->ip_src),0);
+		print_addr((ip->ip_dst),1); 
+	}
 }
 
+void print_udp_header(const struct udphdr * udp, int verbose)
+{
+	unsigned short s = ntohs(udp->source);
+	unsigned short d = ntohs(udp->dest);
+	unsigned short t = ntohs(udp->len);
+	unsigned short c = udp->check;
+	if(verbose == 1) {
+		printf(" *UDP:* s-d:%u-%u len: %u",s,d,t);
+	}
+	else if(verbose == 2) {
+		printf("\n\t\t**UDP HEADER** : Psrc: %u Pdst: %u Len: %u Check: %x",
+			s,d,t,c);
+	}
+	else {
+		printf("**UDP HEADER**\n");
+		printf("Port Source : %u\n",s);
+		printf("Port Destination : %u\n",d);
+		printf("Taille : %u\n",t);
+		printf("Checksum : %x\n",c);
+	}
+}
+
+void print_bootp_header(struct bootp *b_p, int verbose) 
+{
+
+	char *t_op = (b_p->bp_op == 1) ? "Request" : "Reply";
+	u_int8_t ht = b_p->bp_htype;
+	u_int8_t hl = b_p->bp_hlen;
+	u_int8_t ho = b_p->bp_hops;
+	u_int32_t xid = b_p->bp_xid;
+	u_int16_t flgs = b_p->bp_flags;
+	char * mac_c = ether_ntoa((struct ether_addr*)b_p->bp_chaddr);
+	char *serverhostname = ether_ntoa((struct ether_addr*)b_p->bp_sname);
+	char *value_flgs = (flgs == 0) ? "Unicast" : (flgs == 0x800) ? "Broadcast" : "Autre";
+	char buffer[INET_ADDRSTRLEN];
+	char buffer2[INET_ADDRSTRLEN];
+	inet_ntop( AF_INET, &b_p->bp_ciaddr, buffer, sizeof( buffer ));
+	inet_ntop( AF_INET, &b_p->bp_siaddr, buffer2, sizeof( buffer2 ));
+	char *dhcp = NULL;
+	if((b_p->bp_vend[0] == 99 && (b_p->bp_vend[1] == 130) 
+			&& (b_p->bp_vend[2]== 83) && (b_p->bp_vend[3] == 99)))
+		dhcp = "DHCP";
+	
+	if(verbose == 1) {
+		printf(" *BP:* o:%s cadr:%s sadr:%s %s",t_op,buffer,buffer2,dhcp);
+	}
+	else if(verbose == 2) {
+		printf("\n\t\t\t**BOOTP HEADER : op: %s ht-hl:%d-%d flgs: %s xid: %x",
+			t_op,ht,hl,value_flgs,ntohl(xid));
+		printf(" @MacClient: %s %s",mac_c,dhcp);
+	}
+	else {
+		printf("**BOOTP HEADER**\n");
+		printf("op : %s\n",t_op);			
+		printf("htype : %u\n",ht);	
+		printf("hlen : %u\n",hl);	
+		printf("hops : %u\n",ho);	
+		printf("xid: %x\n",ntohl(xid));		
+		printf("secs : %u\n",b_p->bp_secs);	
+		printf("flags : %x\n",ntohs(b_p->bp_flags));
+		print_addr(b_p->bp_ciaddr,0); 
+		print_addr(b_p->bp_yiaddr,1); 
+		print_addr(b_p->bp_siaddr,0); 
+		print_addr(b_p->bp_giaddr,1);
+		printf("Client mac adresse %s\n",mac_c);
+		printf("server host name padding %s\n",serverhostname);
+	}
+
+	printf("\nDHCP messages\n");
+	int stop = 1;
+	int i = 4;
+	while(stop) 
+	{
+		int taille_valeurs = 0;
+		if((b_p->bp_vend[i] == 255) || (b_p->bp_vend[i] == 0))
+			stop = 0;
+		printf("Option(%d): \n",b_p->bp_vend[i]);
+		taille_valeurs = b_p->bp_vend[i+1];
+		printf("Length : %d\n",taille_valeurs);
+		int *tab_val;
+		tab_val = calloc(taille_valeurs,4); 
+		for(int j = 0 ; j < taille_valeurs; j++) 
+			tab_val[j] = b_p->bp_vend[j+i+2];
+		dhcp_tlv(b_p->bp_vend[i],tab_val,taille_valeurs);
+		i += taille_valeurs+2;
+	}
+	(void) stop;
+	
+}
 
 
 char * trad_msg_type_dhcp(int valeur)
@@ -82,81 +188,10 @@ void dhcp_tlv(int type,int *tab_val, int taille_tab)
 	printf("\n\n");
 }
 
-void print_bootp_header(struct bootp *b_p) 
-{
-	printf("**BOOTP HEADER**\n");
-	printf("op : %u\n",b_p->bp_op);			/* packet opcode type */
-	printf("htype : %u\n",b_p->bp_htype);	/* hardware addr type */
-	printf("hlen : %u\n",b_p->bp_hlen);	/* hardware addr length */
-	printf("hops : %u\n",b_p->bp_hops);	/* gateway hops */
-	printf("xid: %u\n",b_p->bp_xid);		/* transaction ID */
-	printf("secs : %u\n",b_p->bp_secs);	/* seconds since boot began */
-	printf("flags : %u\n",b_p->bp_flags);	/* flags: 0x8000 is broadcast */
-	
-	print_addr(b_p->bp_ciaddr,0); // client IP address 
-	print_addr(b_p->bp_yiaddr,1); // 'your' IP address 
-	print_addr(b_p->bp_siaddr,0); // server IP address 
-	print_addr(b_p->bp_giaddr,1); // gateway IP address 
-
-	printf("Client mac adresse %s\n",ether_ntoa((struct ether_addr*)b_p->bp_chaddr));
-	printf("server host name padding %s\n",ether_ntoa((struct ether_addr*)b_p->bp_sname));	// server host name 
-	if((b_p->bp_vend[0] == 99 && (b_p->bp_vend[1] == 130) 
-			&& (b_p->bp_vend[2]== 83) && (b_p->bp_vend[3] == 99)))
-		printf("MAGIC COOKIE IS PRESENT : DHCP\n");
-	printf("DHCP messages\n");
-	int stop = 1;
-	int i = 4;
-	while(stop) 
-	{
-		int taille_valeurs = 0;
-		if((b_p->bp_vend[i] == 255) || (b_p->bp_vend[i] == 0))
-			stop = 0;
-		printf("Option(%d): \n",b_p->bp_vend[i]);
-		taille_valeurs = b_p->bp_vend[i+1];
-		printf("Length : %d\n",taille_valeurs);
-		int *tab_val;
-		tab_val = calloc(taille_valeurs,4); 
-		for(int j = 0 ; j < taille_valeurs; j++) 
-			tab_val[j] = b_p->bp_vend[j+i+2];
-		dhcp_tlv(b_p->bp_vend[i],tab_val,taille_valeurs);
-		i += taille_valeurs+2;
-	}
-	(void) stop;
-	
-}
 
 
 
-void print_tcp_header(const struct tcphdr *tcp)
-{
-	printf("**TCP HEADER**\n");
-	printf("Port Source : %u\n",ntohs(tcp->source));
-	printf("Port Destination : %u\n",ntohs(tcp->dest));
-	printf("Sequence number : %x\n",ntohs(tcp->seq));
-	printf("Acknowledgment number : %x\n",ntohs(tcp->ack_seq));
-	printf("Res1 : %u\n",tcp->res1);
-	printf("Off : %u\n",tcp->doff);
-	printf("Fin : %u\n",tcp->fin);
-	printf("Syn : %u\n",tcp->syn);
-	printf("Rst :%u\n",tcp->rst);
-	printf("Psh :%u\n",tcp->psh);
-	printf("Ack :%u\n",tcp->ack);
-	printf("Urg :%u\n",tcp->urg);
-	printf("Res2 :%u\n",tcp->res2);
-	printf("Window : %u\n",ntohs(tcp->window));
-	printf("Checkum : %x\n",ntohs(tcp->check));
-	printf("Urgent pointer : %u\n",tcp->urg_ptr>>8);
-}
 
-
-void print_udp_header(const struct udphdr * udp)
-{
-	printf("**UDP HEADER**\n");
-	printf("Port Source : %u\n",ntohs(udp->source>>8));
-	printf("Port Destination : %u\n",ntohs(udp->dest>>8));
-	printf("Taille : %u\n",ntohs(udp->len));
-	printf("Checksum : %u\n",ntohs(udp->check));
-}
 
 void print_dns_header(const HEADER *dns) 
 {

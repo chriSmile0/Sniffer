@@ -16,7 +16,7 @@
  * @return noreturn
 */
 
-void print_ip_header(const struct ip* ip);
+void print_ip_header(const struct ip* ip, int verbose);
 
 /**
  * @version 1.0
@@ -30,21 +30,9 @@ void print_ip_header(const struct ip* ip);
  * @return noreturn
 */
 
-void print_udp_header(const struct udphdr * udp);
+void print_udp_header(const struct udphdr * udp, int verbose);
 
-/**
- * @version 1.0
- * 
- * @brief	Affiche de manière lisible,précise et dans l'ordre logique 
- * 			les champs importants d'un en-tête TCP
- * 
- * @param[:tcp] une structure tcp_hdr qui est un ensemble de champs short/long
- * 			afin de pouvoir lire le contenu de la trame
- * 
- * @return noreturn 
-*/
 
-void print_tcp_header(const struct tcphdr *tcp);
 
 /**
  * @version 1.0
@@ -58,7 +46,7 @@ void print_tcp_header(const struct tcphdr *tcp);
  * @return noreturn
 */
 
-void print_bootp_header(struct bootp *b_p);
+void print_bootp_header(struct bootp *b_p, int verbose);
 
 /**
  * @version 1.0
@@ -69,6 +57,11 @@ void print_bootp_header(struct bootp *b_p);
  * 
  * @return 
 */
+
+
+char * trad_msg_type_dhcp(int valeur);
+
+void dhcp_tlv(int type,int *tab_val, int taille_tab);
 
 void print_dns_header(const HEADER *dns);
 

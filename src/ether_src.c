@@ -13,8 +13,10 @@ void print_ethernet_header(const struct ether_header *ether, int verbose)
     else 
 	    printf("**ETHERNET HEADER** \n");
     
-    printf("%s %c",ether_ntoa((struct ether_addr*)ether->ether_shost),space_or_backline);
-    printf("%s %c" ,ether_ntoa((struct ether_addr*)ether->ether_dhost),space_or_backline);
+    printf("@MacSrc:%s %c",ether_ntoa((struct ether_addr*)ether->ether_shost),
+        space_or_backline);
+    printf("@MacDst:%s %c" ,ether_ntoa((struct ether_addr*)ether->ether_dhost),
+        space_or_backline);
     int type_EDT = ntohs(ether->ether_type);
     switch(type_EDT) {
         case EDT_IP6:

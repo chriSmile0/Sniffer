@@ -1,5 +1,6 @@
 #include "../inc/fct.h"
 #include "../inc/ip_inc.h"
+#include "../inc/tcp_inc.h"
 #include "../inc/ether_inc.h"
 #include "../inc/arp_rarp.h"
 
@@ -70,18 +71,17 @@ void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char
 			fprintf(stderr,"Valeur header length incorrect : %u\n", size_ip);
 			exit(1);
 		}
-		print_ip_header(ip);
+		print_ip_header(ip,verbose);
 		
 		if((ip->ip_p == 17)) 
 		{
 			const struct udphdr *udp; // The UDP header 
 			udp = (struct udphdr*)(paquet+SIZE_ETHERNET+size_ip);
-			print_udp_header(udp);
+			print_udp_header(udp,verbose);
 			if((udp->source>>8 == 67) || (udp->dest>>8 == 67)) {
-				print_udp_header(udp);
 				struct bootp *b_p;
 				b_p = (struct bootp*)(paquet+SIZE_ETHERNET+size_ip+(sizeof(udp)));
-				print_bootp_header(b_p);					
+				print_bootp_header(b_p,verbose);					
 			}
 			else if((udp->source>>8 == 53) || (udp->dest>>8 == 53))
 			{
@@ -162,51 +162,14 @@ void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char
 			
 			const struct tcphdr *tcp;
 			tcp = (struct tcphdr*)(paquet+SIZE_ETHERNET+size_ip);
-			print_tcp_header(tcp);
+			print_tcp_header(tcp,verbose);
 			//int off_smtp = (tcp->doff*4);
 			int nb_options = (tcp->doff*4)-20;
-			const struct tcp_options *tcp_o;
-			tcp_o = (struct tcp_options*)(paquet+SIZE_ETHERNET+size_ip+nb_options);
-			(void) tcp_o;
-			//int i = 0;
-			printf("<");
-			// //***a refaire en switch case et dans une fonction *********************************/
-			/*while(i < nb_options) {
-				u_int8_t *taille_paquet;
-				taille_paquet = (u_int8_t*)(paquet+SIZE_ETHERNET+size_ip+sizeof(tcp)+nb_options+i);
-				taille_paquet += 1;
-				if((int)*taille_paquet == 4) 
-				{
-					printf("sackOk,");
-				}
-				else if((int)*taille_paquet == 8) 
-				{
-					struct timestamps *tms;
-					tms = (struct timestamps*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
-					printf("timestamp ");
-					printf("%d ",ntohl(tms->t1));
-					printf("%d ,",ntohl(tms->t2));
-				}
-				else if((int)*taille_paquet == 3) 
-				{
-					u_int8_t *wscale;
-					wscale = (u_int8_t*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
-					printf("wscale ");
-					printf("%d ,",*wscale);
-				}
-				else if((int)*taille_paquet == 2) 
-				{
-					u_int16_t *mss;
-					mss = (u_int16_t*)(paquet+SIZE_ETHERNET+size_ip+nb_options+i+((int)*taille_paquet));
-					printf("mss %d,",ntohl(*mss));
-				}
-				else {
-					printf("nop,");
-				}
-				i+= ((int)*taille_paquet); //soucis ici avec le http simple (get)
-
-			}*/
-			printf(">\n");
+			(void) nb_options;
+			int len_tcp = 20;//((tcp->doff*4)-20) + sizeof(tcp);
+			printf("size of tcp : %ld\n",sizeof(tcp));
+			int index_trame = SIZE_ETHERNET+size_ip+len_tcp;
+			print_tcp_options(nb_options,index_trame,verbose,paquet);
 			//check des ports pour savoir si on fait du SMTP ou pas derrière 
 			if(((ntohs(tcp->dest) == 25) || (ntohs(tcp->source) == 25)) || 
 				((ntohs(tcp->dest) == 587) || ntohs(tcp->source) == 587)){
