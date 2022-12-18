@@ -18,22 +18,23 @@
 
 struct QUESTION
 {
-    unsigned short qtype;
-    unsigned short qclass;
+    unsigned short type;
+    unsigned short class;
 };
 
 struct RES_RECORD
 {
     unsigned short type;
+    unsigned short class;
+    unsigned short ttl;
     unsigned short data_len;
-    /*unsigned short _class;
-    unsigned int ttl;
-    unsigned char *rdata;*/
 };
 
-//tcp options 
-
-// creer une struct smtp 
+struct ANS_RECORD
+{
+    unsigned short type;
+    unsigned short class;
+};
 
 struct smtp {
     u_int8_t vend[128];

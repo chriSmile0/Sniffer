@@ -18,24 +18,4 @@
 
 void print_addr(struct in_addr ip_addr, int src_or_dst); // print addr to format #.#.#.#. or 1:1:1:1:1:1:
 
-
-/**
- * @version 1.0
- * 
- * @brief
- * 
- * @param[:]
- * 
- * @return 
-*/
-
-void print_mac_adr(unsigned long long mac_adr, int src_or_dst);
-
-
-
-
-struct in_addr* cast_uint32_in_in_addr(u_int32_t value);
-
-struct in_addr* cast_uint8_in_in_addr(const u_int8_t* val);
-
 #endif // UTILE_H

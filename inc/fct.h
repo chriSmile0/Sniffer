@@ -15,11 +15,12 @@
 #define SIZE_OPTION 1024
 
 #define EDT_IP 0x0800
+#define EDT_IP6 0x86DD
 #define EDT_ARP 0x0806
 #define EDT_RARP 0x0835
 
 typedef struct {
-  int verbose;
+	int verbose;
 } arguments;
 
 /**
@@ -42,23 +43,25 @@ void analyse_offline(char *file, int verbose);
  * 			l'interface entrer en parametre 
  * 
  * @param[:inter] l'interface entrée sur la ligne de commande
- * 
+ * @param[:filtre] le filtre potentiel que l'on utilise
+ * @param[:net]
+ * @param[:verbose] le niveau de verbosité 
  * @return noreturn 
 */
+
+void analyse_online(pcap_t *handle,char *filtre, bpf_u_int32 net, int verbose);
 
 /**
  * @version 1.0
  * 
  * @brief
  * 
- * @param[:]
- * 
+ * @param[:args[]] les arguments , ici juste la verbosité
+ * @param[:header] le header du paquet (inutilisé)
+ * @param[:paquer] le paquet à parcourir 
  * @return 
 */
 
 void got_packet(arguments args[], const struct pcap_pkthdr *header, const u_char *paquet);
-
-void analyse_online(pcap_t *handle,char *filtre, bpf_u_int32 net, int verbose);
-
 
 #endif /* FCT_H */

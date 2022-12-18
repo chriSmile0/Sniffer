@@ -11,11 +11,13 @@
 /**
  * @version 1.0
  * 
- * @brief
+ * @brief	Permet d'affiché de manière claire les champs d'un entête
+ * 			ARR/RARP 
  * 
- * @param[:]
+ * @param[:arp] une structure ether_arp qui contient les champs associés
+ * @param[:verbose] le niveau de verbosité
  * 
- * @return 
+ * @return noreturn
 */
 
 void print_arp_header(const struct ether_arp *arp, int verbose);

@@ -1,7 +1,26 @@
 #include "inc/fct.h"
 #include <getopt.h>
 
-int main(int argc, char *argv[]) {
+/**
+ * @version 1.0
+ * 
+ * @brief 	Permet d'analyser la ligne de commande pour savoir si on fait une
+ * 			analyse en ligne ou hors ligne du trafic.
+ * 
+ * 			Nous devons ainsi choisir un niveau d'affichage ainsi qu'un fichier
+ * 			ou une interface en fonction de l'option choisi un peu plus tôt 
+ * 			sur la ligne de commande. Si nous choisissons le en ligne il 
+ * 			sera possible de préciser un filtre qui est optionnel
+ * 
+ * @param[:argc] le nombre d'argument présents sur la ligne de commande
+ * @param[:argv[]] les arguments de la ligne de commande
+ * 
+ * @return EXIT_FAILURE/EXIT_SUCCESS
+*/
+
+
+int main(int argc, char *argv[]) 
+{
 	extern int optind;
 	static struct option options[] = {
 		{"-i", required_argument,NULL,'i'}, //verbose + filtre en option
@@ -17,8 +36,10 @@ int main(int argc, char *argv[]) {
 	char *dev = NULL;
 	int verbose = 0;
 	char mode = 'x';
-	while ((opt = getopt_long(argc, argv, "i:o:", options, &index)) != -1) {
-		switch (opt) {
+	while ((opt = getopt_long(argc, argv, "i:o:", options, &index)) != -1) 
+	{
+		switch (opt) 
+		{
 			/* Inline */
 			case 'i':
 				printf("*** Inline ***\n");
@@ -28,19 +49,23 @@ int main(int argc, char *argv[]) {
 					verbose = atoi(argv[optind]);
 					if(verbose < 4 && verbose > 0) {
 						mode = 'i';
-						if((++optind < argc)&&(strcmp("-f",argv[optind]) == 0)) {
+						if((++optind < argc)&&(strcmp("-f",argv[optind]) == 0)) 
+						{
 							filtre = malloc(20);//taille max du filtre
 							filtre[0] = '\0';
 							snprintf(filtre,19,"%s",argv[++optind]);
 						}
 					}
-					else {
+					else 
+					{
 						fprintf(stderr,"usage : -v [1|2|3] \n");
 						return EXIT_FAILURE;
 					}
 				}
-				else {
-					if(argv[optind][0] != '-'){ //ce n'est pas une interface mais l'option suivante
+				else 
+				{
+					if(argv[optind][0] != '-')
+					{ //ce n'est pas une interface mais l'option suivante
 						dev = malloc(strlen(argv[optind])+1);
 						snprintf(dev,strlen(argv[optind])+1,"%s",argv[optind]);
 						dev[strlen(argv[optind])] = '\0';
@@ -50,14 +75,16 @@ int main(int argc, char *argv[]) {
 							verbose = atoi(argv[optind]);
 							if(verbose < 4 && verbose > 0) {
 								mode = 'i';
-								if((++optind < argc)&&(strcmp("-f",argv[optind]) == 0)) {
+								if((++optind < argc)&&(strcmp("-f",argv[optind]) == 0)) 
+								{
 									filtre = malloc(20);//taille max du filtre
 									filtre[0] = '\0';
 									snprintf(filtre,19,"%s",argv[++optind]);
 								}
 							}
 						}
-						else {
+						else 
+						{
 							fprintf(stderr,"usage : -v [1|2|3] \n");
 							return EXIT_FAILURE;
 						}
@@ -72,23 +99,27 @@ int main(int argc, char *argv[]) {
 			/* Offline */
 			case 'o':
 				printf("*** Offline ***\n");
-				if(strlen(optarg)!=0) { //file 
+				if(strlen(optarg)!=0) 
+				{ //file 
 					optind = 2;
 					file = malloc(strlen(argv[optind])+1);
 					snprintf(file,strlen(argv[optind])+1,"%s",argv[optind]);
 					file[strlen(argv[optind])] = '\0';
-					if(strcmp("-v",argv[++optind]) != 0) {
+					if(strcmp("-v",argv[++optind]) != 0) 
+					{
 						fprintf(stderr,"usage : <file> -v [1|2|3] \n");
 						return EXIT_FAILURE;
 					}
 					verbose = atoi(argv[++optind]);
-					if(verbose < 1 || verbose > 3) {
+					if(verbose < 1 || verbose > 3) 
+					{
 						fprintf(stderr,"usage : %s -o <file> -v [1|2|3]\n",argv[0]);
 						return EXIT_FAILURE;
 					}
 					mode = 'o';
 				}
-				else {
+				else 
+				{
 					fprintf(stderr,"usage %s -o <file> -v [1|2|3]\n",argv[0]);
 					return EXIT_FAILURE;
 				}
@@ -101,7 +132,8 @@ int main(int argc, char *argv[]) {
 	printf("verbose : %d\n",verbose);
 	printf("mode : %c\n",mode);
 	
-	if(mode == 'o') {
+	if(mode == 'o') 
+	{
 		//Offline : verbose [1|2|3] mode : o , filtre = NULL
 		printf("File : %s\n",file);
 		printf("verbose ::: %d\n",verbose);
@@ -109,7 +141,8 @@ int main(int argc, char *argv[]) {
 		if(file != NULL)
 			free(file);
 	}
-	else {
+	else 
+	{
 		//Inline : verbose [1|2|3] mode : i , filtre = NULL | filtre != NULL
 		printf("filtre : %s\n",(filtre != NULL) ? filtre : "NULL");
 		printf("device : %s\n",(dev != NULL) ? dev : "NULL");
@@ -117,7 +150,8 @@ int main(int argc, char *argv[]) {
 		bpf_u_int32 mask;		/* The netmask of our sniffing device */
 		bpf_u_int32 net;		/* The IP of our sniffing device */
 		if(dev != NULL) {
-			if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1) {
+			if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1) 
+			{
 				fprintf(stderr, "Can't get netmask for device %s\n", dev);
 				net = 0;
 				mask = 0;
@@ -125,28 +159,34 @@ int main(int argc, char *argv[]) {
 			handle = pcap_open_live(dev, BUFSIZ, 1, 10000, errbuf); 
 			// 1 pour activer promisq et 1000 de timeout (a changer car 
 			// on est en boucle jusqu'à ^C)
-			if (handle == NULL)  {
+			if (handle == NULL) 
+			{
 				fprintf(stderr,"Erreur dev %s non accessible : %s\n",dev,errbuf);
 				return EXIT_FAILURE;
 			}
-			else {
+			else 
+			{
 				analyse_online(handle,filtre,net,verbose);
 			}
 		}
-		else {
+		else 
+		{
 			pcap_findalldevs(&alldevsp,errbuf);
 			device = alldevsp;
-			if (pcap_lookupnet(device->name, &net, &mask, errbuf) == -1) {
+			if (pcap_lookupnet(device->name, &net, &mask, errbuf) == -1) 
+			{
 				fprintf(stderr, "Can't get netmask for device %s\n", device->name);
 				net = 0;
 				mask = 0;
 			}
 			handle = pcap_open_live(device->name, BUFSIZ, 1, 10000, errbuf); 
-			if (handle == NULL)  {
+			if (handle == NULL)  
+			{
 				fprintf(stderr,"Erreur dev %s non accessible : %s\n",dev,errbuf);
 				return EXIT_FAILURE;
 			}
-			else {
+			else 
+			{
 				analyse_online(handle,filtre,net,verbose);
 			}
 		}
