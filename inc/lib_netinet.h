@@ -12,7 +12,6 @@
 #include "netinet/ip.h"
 #include "netinet/ip6.h"
 #include "netinet/ip_icmp.h"
-#include "netinet/tcp.h"
 #include "netinet/udp.h"
 
 

@@ -22,6 +22,12 @@
 #ifndef BOOTP_H
 #define BOOTP_H
 
+struct dhcp {
+	u_int8_t tag_values;
+	u_int8_t len;
+	u_int8_t *adr;
+};
+
 struct bootp {
 	u_int8_t	bp_op;		/* packet opcode type */
 	u_int8_t	bp_htype;	/* hardware addr type */
